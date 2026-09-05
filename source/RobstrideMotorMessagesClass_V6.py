@@ -1,6 +1,6 @@
 '''
 By: Eric weissman
-7/8/2026
+9/4/2026
 
 Helper class which builds CAN messages for robstride motors and handles response 
 '''
