@@ -1,6 +1,8 @@
 '''
 By: Eric weissman
-9/4/2026
+7/8/2026
+
+11/5/26 : added curr PI and curr KI controls
 
 Helper class which builds CAN messages for robstride motors and handles response 
 '''
@@ -402,6 +404,36 @@ class MotorMessages:
         else:
             self.logger.warning("Could not set vel ki since motors are not stopped")
 
+    def set_cur_kp(self, cur_kp:list[float]):
+            
+        assert len(cur_kp) == self.num_motors, 'Incorrect number of values'
+
+        if(self.motor_state == 'Stopped'):
+            msg = list(itertools.chain.from_iterable([MotorMessages._set_cur_kp_msg(motor_id = self.motor_ids[i],
+                                                                                    cur_kp =cur_kp[i]) 
+                                                        for i in range(self.num_motors)]))
+            
+            self.logger.info(f"Setting vel kp to {cur_kp}.")
+
+            self.communicator.SingleWrite(msg)
+        else:
+            self.logger.warning("Could not set cur kp since motors are not stopped")
+
+    def set_cur_ki(self, cur_ki:list[float]):
+                
+        assert len(cur_ki) == self.num_motors, 'Incorrect number of values'
+
+        if(self.motor_state == 'Stopped'):
+            msg = list(itertools.chain.from_iterable([MotorMessages._set_cur_ki_msg(motor_id = self.motor_ids[i],
+                                                                                    cur_ki =cur_ki[i]) 
+                                                        for i in range(self.num_motors)]))
+            
+            self.logger.info(f"Setting vel kp to {cur_ki}.")
+
+            self.communicator.SingleWrite(msg)
+        else:
+            self.logger.warning("Could not set cur ki since motors are not stopped")
+
     def set_vel_filter_gain(self, vel_filter_gain:list[float]):
 
         assert len(vel_filter_gain) == self.num_motors, 'Incorrect number of values'
@@ -448,6 +480,7 @@ class MotorMessages:
 
             #handle position control modes
             if modes[idx] in ('position', 'CSP'):
+
                 msg = msg + list(itertools.chain.from_iterable([MotorMessages._set_position_ref_msg(motor_id = self.motor_ids[idx],
                                                               position = MotorMessages.clamp(reference[idx],
                                                                                              self.min_angles[idx],
@@ -733,6 +766,28 @@ class MotorMessages:
         data = [0x1E, 0x70, 0x00, 0x00] + list(fb)
         msg = eid+ data
         return msg
+
+    def _set_cur_kp_msg(motor_id: int, cur_kp: float):
+            """
+            Send 0x12 write-single-parameter to index 0x7010 ().
+     
+            """
+            eid = MotorMessages.build_eid(0x12, HOST_ID, motor_id)
+            fb = struct.pack("<f", cur_kp)  # little-endian float
+            data = [0x10, 0x70, 0x00, 0x00] + list(fb)
+            msg = eid+ data
+            return msg
+
+    def _set_cur_ki_msg(motor_id: int, cur_ki: float):
+                """
+                Send 0x12 write-single-parameter to index 0x7010 ().
+         
+                """
+                eid = MotorMessages.build_eid(0x12, HOST_ID, motor_id)
+                fb = struct.pack("<f", cur_ki)  # little-endian float
+                data = [0x11, 0x70, 0x00, 0x00] + list(fb)
+                msg = eid+ data
+                return msg
 
     def _set_vel_ki_msg(motor_id: int, vel_ki: float):
         """
